@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { Chess, Square } from "chess.js";
 import Chessground from "@bezalel6/react-chessground";
@@ -16,25 +16,26 @@ export function Practice() {
 
     const opening = useMemo(() => OPENINGS.find((o) => o.id === id), [id]);
 
-    // Redirect if invalid ID
-    if (!opening && id) {
-        return <Navigate to="/" replace />;
-    }
-
-    // If no ID, ideally we show a selection or random, but for now redirect
-    if (!id) {
-        return <Navigate to="/" replace />;
-    }
-
-    // -- State --
+    // -- State for UI --
     const [game, setGame] = useState(new Chess());
     const [status, setStatus] = useState<"playing" | "completed" | "failed">("playing");
     const [message, setMessage] = useState<string>("Make your move!");
     const [orientation] = useState<"white" | "black">(opening?.side || "white");
     const [moveIndex, setMoveIndex] = useState(0);
-    const [lastMove, setLastMove] = useState<[string, string] | undefined>(undefined);
+    const [lastMove, setLastMove] = useState<Square[] | undefined>(undefined);
 
-    // Memoize the target sequence of moves
+    // -- Refs for Logic (to avoid closure capture issues in Chessground) --
+    const gameRef = useRef(new Chess());
+    const moveIndexRef = useRef(0);
+    const statusRef = useRef<"playing" | "completed" | "failed">("playing");
+
+    // Sync refs with state when they change externally (like reset)
+    useEffect(() => {
+        gameRef.current = game;
+        moveIndexRef.current = moveIndex;
+        statusRef.current = status;
+    }, [game, moveIndex, status]);
+
     const moveSequence = useMemo(() => {
         if (!opening) return [];
         const tempGame = new Chess();
@@ -54,12 +55,11 @@ export function Practice() {
     const getDests = (chess: Chess): Dests => {
         const dests = new Map<Square, Square[]>();
         chess.moves({ verbose: true }).forEach((m) => {
-            dests.set(m.from, (dests.get(m.from) || []).concat(m.to));
+            dests.set(m.from as Square, (dests.get(m.from as Square) || []).concat(m.to as Square));
         });
         return dests;
     };
 
-    // -- Computer Move logic --
     const makeComputerMove = useCallback(
         (currentGame: Chess, index: number) => {
             if (index >= moveSequence.length) return;
@@ -69,13 +69,19 @@ export function Practice() {
                 const result = currentGame.move(move.san || move.lan);
                 if (result) {
                     const newGame = new Chess(currentGame.fen());
+                    gameRef.current = newGame;
+                    moveIndexRef.current = index + 1;
+
                     setGame(newGame);
                     setMoveIndex(index + 1);
                     setLastMove([result.from, result.to]);
 
                     if (index + 1 >= moveSequence.length) {
                         setStatus("completed");
+                        statusRef.current = "completed";
                         setMessage("Practice complete! Well done.");
+                    } else {
+                        setMessage("Your turn!");
                     }
                 }
             } catch (e) {
@@ -87,10 +93,14 @@ export function Practice() {
 
     const resetGame = useCallback(() => {
         const newGame = new Chess();
+        gameRef.current = newGame;
+        moveIndexRef.current = 0;
+        statusRef.current = "playing";
+
         setGame(newGame);
         setMoveIndex(0);
         setStatus("playing");
-        setMessage("Make your move!");
+        setMessage(userColor === "white" ? "Make your move!" : "Waiting for computer...");
         setLastMove(undefined);
 
         if (userColor === "black" && moveSequence.length > 0) {
@@ -104,13 +114,18 @@ export function Practice() {
         resetGame();
     }, [resetGame]);
 
-    // -- Interaction --
-    const onMove = (from: string, to: string) => {
-        if (status !== "playing") return;
-        if (game.turn() !== userTurnChar) return;
+    const onMove = (from: any, to: any) => {
+        // ALWAYS use Ref values here to avoid stale closures
+        const currentStatus = statusRef.current;
+        const currentMoveIndex = moveIndexRef.current;
+        const currentGame = gameRef.current;
 
-        const tempGame = new Chess(game.fen());
+        if (currentStatus !== "playing") return;
+        if (currentGame.turn() !== userTurnChar) return;
+
         try {
+            // 1. Check if the move is legal in chess
+            const tempGame = new Chess(currentGame.fen());
             const moveAttempt = tempGame.move({
                 from: from as Square,
                 to: to as Square,
@@ -119,9 +134,11 @@ export function Practice() {
 
             if (!moveAttempt) return;
 
-            const expectedMove = moveSequence[moveIndex];
+            // 2. Check if the move is correct according to sequence
+            const expectedMove = moveSequence[currentMoveIndex];
             if (!expectedMove) {
                 setStatus("completed");
+                statusRef.current = "completed";
                 setMessage("Sequence finished!");
                 return;
             }
@@ -129,48 +146,60 @@ export function Practice() {
             const isCorrectSquares = from === expectedMove.from && to === expectedMove.to;
 
             if (!isCorrectSquares) {
-                setMessage("Incorrect move. Try again!");
-                // We need to revert the board state in Chessground
-                // Since Chessground is controlled by FEN, setting game state back triggers it
+                setMessage(`Incorrect. The correct move was ${expectedMove.san}. Try again!`);
+                // Revert board after a delay
                 setTimeout(() => {
-                    setGame(new Chess(game.fen()));
-                }, 300);
+                    setGame(new Chess(currentGame.fen()));
+                }, 500);
                 return;
             }
 
-            // Correct move
-            const newGame = new Chess(game.fen());
-            newGame.move({
+            // 3. Apply Correct Move
+            const nextGame = new Chess(currentGame.fen());
+            nextGame.move({
                 from: from as Square,
                 to: to as Square,
                 promotion: "q",
             });
-            setGame(newGame);
-            setMoveIndex((prev) => prev + 1);
-            setMessage("Correct!");
-            setLastMove([from, to]);
 
-            if (moveIndex + 1 >= moveSequence.length) {
+            const nextIndex = currentMoveIndex + 1;
+            gameRef.current = nextGame;
+            moveIndexRef.current = nextIndex;
+
+            setGame(nextGame);
+            setMoveIndex(nextIndex);
+            setMessage("Correct!");
+            setLastMove([from as Square, to as Square]);
+
+            if (nextIndex >= moveSequence.length) {
                 setStatus("completed");
+                statusRef.current = "completed";
                 setMessage("Practice complete! Well done.");
             } else {
+                // Trigger Computer Response
                 setTimeout(() => {
-                    makeComputerMove(newGame, moveIndex + 1);
+                    makeComputerMove(nextGame, nextIndex);
                 }, 500);
             }
         } catch (e) {
-            console.error("Move error", e);
+            console.error("Move processing error", e);
         }
     };
 
     const showHintHandler = () => {
-        const nextMove = moveSequence[moveIndex];
+        const nextMove = moveSequence[moveIndexRef.current];
         if (nextMove) {
-            setMessage(`Hint: Move your piece to ${nextMove.to}`);
-            // In Chessground we can't easily draw arrows without internal API calls or specific props
-            // For now we just update the message
+            setMessage(`Hint: ${nextMove.san} (${nextMove.from} to ${nextMove.to})`);
         }
     };
+
+    // Redirect if invalid ID
+    if (!opening && id) {
+        return <Navigate to="/" replace />;
+    }
+    if (!id) {
+        return <Navigate to="/" replace />;
+    }
 
     return (
         <div className="flex flex-col items-center max-w-4xl mx-auto w-full py-8 space-y-8 px-4">
@@ -203,6 +232,7 @@ export function Practice() {
                             lastMove={lastMove}
                             width="100%"
                             height="100%"
+                            animation={{ enabled: true, duration: 250 }}
                         />
                     </div>
                 </div>
@@ -211,7 +241,7 @@ export function Practice() {
                 <div className="lg:col-span-1 flex flex-col space-y-6">
                     <div
                         className={cn(
-                            "p-6 rounded-xl border flex flex-col items-center text-center space-y-2 transition-colors",
+                            "p-6 rounded-xl border flex flex-col items-center text-center space-y-2 transition-colors min-h-[120px] justify-center",
                             status === "playing"
                                 ? "bg-card border-border"
                                 : status === "completed"
@@ -222,10 +252,10 @@ export function Practice() {
                         {status === "playing" && <div className="font-semibold text-lg">{message}</div>}
                         {status === "completed" && (
                             <>
-                                <CheckCircle2 className="h-12 w-12 text-green-600 mb-2" />
-                                <div className="font-bold text-xl">Completed!</div>
+                                <CheckCircle2 className="h-10 w-10 text-green-600 mb-2" />
+                                <div className="font-bold text-xl uppercase tracking-tight">Completed!</div>
                                 <p className="text-sm opacity-90">
-                                    You have successfully practiced this opening sequence.
+                                    Great job! You've mastered this opening sequence.
                                 </p>
                             </>
                         )}
@@ -234,7 +264,7 @@ export function Practice() {
                     {/* Progress */}
                     <div className="space-y-2">
                         <div className="flex justify-between text-sm font-medium">
-                            <span>Progress</span>
+                            <span>Sequence Progress</span>
                             <span>
                                 {moveSequence.length > 0
                                     ? Math.round((moveIndex / moveSequence.length) * 100)
@@ -252,11 +282,11 @@ export function Practice() {
                             />
                         </div>
                         <p className="text-xs text-muted-foreground text-center pt-1">
-                            Move {Math.ceil((moveIndex + 1) / 2)} of {Math.ceil(moveSequence.length / 2)}
+                            Move {moveIndex} of {moveSequence.length}
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mt-auto">
+                    <div className="grid grid-cols-2 gap-4">
                         <Button
                             variant="outline"
                             onClick={showHintHandler}
@@ -271,32 +301,39 @@ export function Practice() {
                     </div>
 
                     {/* Move History */}
-                    <div className="bg-muted/30 rounded-lg p-4 h-48 overflow-y-auto text-sm font-mono border border-border">
-                        <div className="grid grid-cols-[30px_1fr_1fr] gap-y-1">
+                    <div className="bg-muted/30 rounded-lg p-4 flex-grow overflow-y-auto text-sm font-mono border border-border">
+                        <div className="grid grid-cols-[30px_1fr_1fr] gap-x-4 gap-y-2">
+                            <div className="text-muted-foreground font-bold border-b pb-1">#</div>
+                            <div className="text-muted-foreground font-bold border-b pb-1 text-center">White</div>
+                            <div className="text-muted-foreground font-bold border-b pb-1 text-center">Black</div>
                             {moveSequence.map((m, i) => {
                                 if (i % 2 === 0) {
                                     const moveNum = Math.floor(i / 2) + 1;
                                     const whiteMove = m;
                                     const blackMove = moveSequence[i + 1];
 
-                                    const isNext = i === moveIndex || i + 1 === moveIndex;
+                                    const isWhiteActive = i === moveIndex;
+                                    const isBlackActive = i + 1 === moveIndex;
                                     const isDone = i < moveIndex;
+                                    const isBlackDone = i + 1 < moveIndex;
 
                                     return (
-                                        <div
-                                            key={i}
-                                            className={cn(
-                                                "contents",
-                                                isDone
-                                                    ? "text-muted-foreground"
-                                                    : isNext
-                                                        ? "text-foreground font-semibold"
-                                                        : "text-muted-foreground/50"
-                                            )}
-                                        >
+                                        <div key={i} className="contents">
                                             <div className="text-muted-foreground">{moveNum}.</div>
-                                            <div>{whiteMove.san}</div>
-                                            <div>{blackMove?.san || ""}</div>
+                                            <div className={cn(
+                                                "px-2 py-0.5 rounded text-center",
+                                                isWhiteActive ? "bg-primary text-primary-foreground font-bold" :
+                                                    isDone ? "text-foreground/70" : "text-muted-foreground/30"
+                                            )}>
+                                                {whiteMove.san}
+                                            </div>
+                                            <div className={cn(
+                                                "px-2 py-0.5 rounded text-center",
+                                                isBlackActive ? "bg-primary text-primary-foreground font-bold" :
+                                                    isBlackDone ? "text-foreground/70" : "text-muted-foreground/30"
+                                            )}>
+                                                {blackMove?.san || ""}
+                                            </div>
                                         </div>
                                     );
                                 }
