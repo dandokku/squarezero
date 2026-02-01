@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/Layout.tsx";
 import { OpeningsList } from "./pages/OpeningsList.tsx";
+import { OpeningDetails } from "./pages/OpeningDetails.tsx";
 import { Practice } from "./pages/Practice.tsx";
 // We don't need the old App logic here anymore, it moved to Practice.tsx
 
@@ -12,6 +13,7 @@ function App() {
           <Route index element={<OpeningsList />} />
           <Route path="practice" element={<Practice />} />
           <Route path="practice/:id" element={<Practice />} />
+          <Route path="opening/:id" element={<OpeningDetails />} />
           {/* <Route path="progress" element={<Progress />} /> */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

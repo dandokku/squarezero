@@ -5,6 +5,7 @@ export interface Opening {
     difficulty: "Beginner" | "Intermediate" | "Advanced";
     fen: string; // The position after the opening moves
     side: "white" | "black"; // Which side plays the opening (usually we view from that side)
+    moves?: string; // Short move sequence for display (algebraic)
 }
 
 export const OPENINGS: Opening[] = [
@@ -15,6 +16,7 @@ export const OPENINGS: Opening[] = [
         difficulty: "Intermediate",
         fen: "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
         side: "black",
+        moves: "1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6",
     },
     {
         id: "ruy-lopez",
@@ -23,6 +25,7 @@ export const OPENINGS: Opening[] = [
         difficulty: "Intermediate",
         fen: "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
         side: "white",
+        moves: "1.e4 e5 2.Nf3 Nc6 3.Bb5 a6",
     },
     {
         id: "french-defense",
@@ -31,6 +34,7 @@ export const OPENINGS: Opening[] = [
         difficulty: "Intermediate",
         fen: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
         side: "black",
+        moves: "1.e4 e6 2.d4 d5",
     },
     {
         id: "queens-gambit",
@@ -39,6 +43,7 @@ export const OPENINGS: Opening[] = [
         difficulty: "Intermediate",
         fen: "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2",
         side: "white",
+        moves: "1.d4 d5 2.c4",
     },
     {
         id: "kings-indian-defense",
@@ -47,6 +52,7 @@ export const OPENINGS: Opening[] = [
         difficulty: "Advanced",
         fen: "rnbqkb1r/pppppp1p/5np1/8/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 2 3",
         side: "black",
+        moves: "1.d4 Nf6 2.c4 g6 3.Nc3 Bg7",
     },
     {
         id: "caro-kann",
@@ -55,6 +61,7 @@ export const OPENINGS: Opening[] = [
         difficulty: "Beginner",
         fen: "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
         side: "black",
+        moves: "1.e4 c6 2.d4 d5",
     },
     {
         id: "london-system",
@@ -63,6 +70,7 @@ export const OPENINGS: Opening[] = [
         difficulty: "Beginner",
         fen: "rnbqkbnr/ppp1pppp/8/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR b KQkq - 1 2",
         side: "white",
+        moves: "1.d4 d5 2.Bf4",
     },
     {
         id: "scandinavian-defense",
@@ -71,6 +79,7 @@ export const OPENINGS: Opening[] = [
         difficulty: "Beginner",
         fen: "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2",
         side: "black",
+        moves: "1.e4 d5",
     },
     {
         id: "italian-game",
@@ -79,6 +88,7 @@ export const OPENINGS: Opening[] = [
         difficulty: "Beginner",
         fen: "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
         side: "white",
+        moves: "1.e4 e5 2.Nf3 Nc6 3.Bc4",
     }
 ];
 

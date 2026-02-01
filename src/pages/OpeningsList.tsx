@@ -59,7 +59,7 @@ export function OpeningsList() {
                 {filteredOpenings.map((opening) => (
                     <Link
                         key={opening.id}
-                        to={`/practice/${opening.id}`}
+                        to={`/opening/${opening.id}`}
                         className="group relative overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow transition-all hover:shadow-md hover:border-primary/50"
                     >
                         <div className="w-full aspect-video bg-muted/20 relative flex items-center justify-center p-4">
