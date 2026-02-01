@@ -1,7 +1,5 @@
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
-import { ChessboardWrapper } from "./ChessboardWrapper";
-import { cn } from "../lib/utils";
+import { ChessboardWrapper } from "./ChessboardWrapper.tsx";
 
 interface FlashcardProps {
     openingName: string;

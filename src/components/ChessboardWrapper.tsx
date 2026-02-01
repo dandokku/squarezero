@@ -10,8 +10,7 @@ interface ChessboardWrapperProps {
 export function ChessboardWrapper({ fen, side = "white", visualOnly = true }: ChessboardWrapperProps) {
     // Custom pieces or styling can be added here
     // For now, we use the default pieces but with a custom board style
-    const customDarkSquareStyle = { backgroundColor: "#262626" }; // Neutral charcoal
-    const customLightSquareStyle = { backgroundColor: "#525252" }; // Muted grey for contrast (wait, light squares should be lighter?)
+
 
     // Let's refine the board colors for a "premium dark mode" feel.
     // Dark squares: #262626 (Neutral 800)
@@ -41,24 +40,15 @@ export function ChessboardWrapper({ fen, side = "white", visualOnly = true }: Ch
     return (
         <div className="w-full max-w-[400px] aspect-square select-none pointer-events-none">
             <ReactChessboard
-                position={fen}
-                boardOrientation={side}
-                arePiecesDraggable={!visualOnly}
-                customDarkSquareStyle={{ backgroundColor: "#3F3F46" }} // Zinc 700
-                customLightSquareStyle={{ backgroundColor: "#71717A" }} // Zinc 500
-                // Let's try higher contrast for better visibility
-                // Dark: #52525B (Zinc 600)
-                // Light: #A1A1AA (Zinc 400)
-                // Adjusting to a verified nice dark theme combo
-
-                // Actually, let's stick to the "charcoal / off-white" suggestion
-                // Charcoal: #36454F -> maybe #27272a (zinc-900 is too dark)
-                // let's use:
-                // Dark: #27272a (Zinc 800)
-                // Light: #52525b (Zinc 600)
-
-                customBoardStyle={boardStyle}
-                animationDuration={200}
+                {...({
+                    position: fen,
+                    boardOrientation: side,
+                    arePiecesDraggable: !visualOnly,
+                    customDarkSquareStyle: { backgroundColor: "#3F3F46" },
+                    customLightSquareStyle: { backgroundColor: "#71717A" },
+                    customBoardStyle: boardStyle,
+                    animationDuration: 200
+                } as any)}
             />
         </div>
     );
