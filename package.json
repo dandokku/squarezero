@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bezalel6/react-chessground": "^2.1.1",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/vite": "^4.1.18",
     "autoprefixer": "^10.4.24",
@@ -20,7 +21,6 @@
     "lucide-react": "^0.563.0",
     "postcss": "^8.5.6",
     "react": "^19.2.0",
-    "react-chessboard": "^5.8.6",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",
     "tailwind-merge": "^3.4.0",

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@bezalel6/react-chessground/dist/react-chessground.css";
 
 @theme {
   --color-border: hsl(var(--border));
@@ -74,4 +75,16 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+/* Custom Chessground styling to match theme and ensure responsiveness */
+.cg-wrap {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Optional: Override some colors if they clash with dark theme */
+:root {
+  --cg-last-move-color: rgba(155, 199, 0, 0.3);
+  --cg-selected-color: rgba(20, 85, 30, 0.4);
 }
